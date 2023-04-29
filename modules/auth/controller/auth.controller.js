@@ -81,7 +81,7 @@ export const logIn = asyncHandler(async (req, res, next) => {
                 next(new Error("You have to confirm ur email first", { cause: 400 }))
 
             } else {
-                let token = jwt.sign({ id: user._id }, process.env.tokenSignature, { expiresIn: 60 * 60 * 24 * 2 })
+                let token = jwt.sign({ id: user._id, isLoggedIn: true }, process.env.tokenSignature, { expiresIn: 60 * 60 * 24 * 2 })
                 res.status(200).json({ message: "Welcome", token })
             }
         } else {

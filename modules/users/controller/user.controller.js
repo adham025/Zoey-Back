@@ -9,11 +9,11 @@ export const changePassword = asyncHandler(async (req, res, next) => {
     // try {
     let { currentPassword, newPassword, cNewPassword } = req.body;
     if (newPassword == cNewPassword) {
-        let user = await findById({ model: userModel, id: req.currentUserId });
+        let user = await findById({ model: userModel, id: req.user._id });
         let matched = bcrypt.compareSync(currentPassword, user.password)
         if (matched) {
             const hashed = bcrypt.hashSync(newPassword, parseInt(process.env.SALTROUND));
-            let updatedUser = await findByIdAndUpdate({ model: userModel, condition: { _id: req.currentUserId }, data: { password: hashed }, options: { new: true } })
+            let updatedUser = await findByIdAndUpdate({ model: userModel, condition: { _id: req.user._id }, data: { password: hashed }, options: { new: true } })
             res.json({ message: "updated", updatedUser })
         } else {
             next(new Error("current password invalid", { cause: 400 }))
@@ -58,7 +58,7 @@ export const profilePic = async (req, res) => {
         if (!req.file) {
             res.json({ message: "Please upload image" })
         } else {
-            await userModel.updateOne({ _id: req.currentUserId }, { profilePic: req.file.path })
+            await userModel.updateOne({ _id: req.user._id }, { profilePic: req.file.path })
             res.json({ message: "Done" })
 
         }

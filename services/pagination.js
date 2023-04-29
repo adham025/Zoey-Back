@@ -1,5 +1,3 @@
-
-
 export function paginate(page, size) {
 
     if (!page || page <= 0) {

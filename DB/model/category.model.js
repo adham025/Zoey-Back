@@ -5,6 +5,7 @@ const categorySchema = new Schema({
 
     name: {
         type: String,
+        unique: [true, 'category must be unique value'],
         required: [true, 'Category name is required'],
         min: [2, 'Category name minimum length 2 char'],
         max: [20, 'Category name max length 20 char']

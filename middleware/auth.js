@@ -29,7 +29,7 @@ export const auth = (acceptRoles = [roles.User]) => {
 
                 } else {
                     if (acceptRoles.includes(user.role)) {
-                        req.currentUserId = user._id
+                        req.user = user
                         next()
                     } else {
                         next(new Error("Not authorized user ", { cause: 403 }))

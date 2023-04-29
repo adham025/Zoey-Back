@@ -6,9 +6,9 @@ dotenv.config({ path: path.join(__dirname, '../../config/.env') })
 import cloudinary from 'cloudinary'
 
 cloudinary.v2.config({
-    cloud_name: process.env.cloud_name,
-    api_key: process.env.api_key,
-    api_secret: process.env.api_secret,
+    cloud_name: "dvxoj5iif",
+    api_key: "613526811975697",
+    api_secret: "G66Mxq2B7Y7uT-WaJcpJWJw89yU",
     secure: true
 });
 

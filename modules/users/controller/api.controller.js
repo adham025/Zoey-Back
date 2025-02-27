@@ -41,7 +41,7 @@ export const getGames = asyncHandler(async (req, res) => {
         if (!api.api_url.includes("gamepix.com")) {
           return [
             {
-              id: api._id, 
+              id: api._id,
               title: api.api_name,
               url: api.api_url,
               thumbnailUrl: api.api_image || "/default-thumbnail.jpg",
@@ -87,7 +87,7 @@ export const getGames = asyncHandler(async (req, res) => {
         // Step 2e: Return a fallback game entry for failed APIs
         return [
           {
-            id: api._id, 
+            id: api._id,
             title: api.api_name,
             url: api.api_url,
             thumbnailUrl: api.api_image || "/default-thumbnail.jpg",

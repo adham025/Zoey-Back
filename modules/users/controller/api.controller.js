@@ -3,8 +3,13 @@ import axios from "axios";
 import { asyncHandler } from "../../../services/asyncHandler.js";
 
 export const addApi = asyncHandler(async (req, res) => {
-  const { api_name, api_url, api_image } = req.body;
-  const result = await apiModel.create({ api_name, api_url, api_image });
+  const { api_name, api_url, api_image, game_category } = req.body;
+  const result = await apiModel.create({
+    api_name,
+    api_url,
+    api_image,
+    game_category,
+  });
   res.status(201).json({ message: "Created", result });
 });
 
@@ -22,6 +27,7 @@ export const deleteApi = asyncHandler(async (req, res) => {
   }
   res.status(200).json({ message: "Deleted", deletedApi });
 });
+
 export const getGames = asyncHandler(async (req, res) => {
   try {
     // Step 1: Fetch all APIs from the database
@@ -46,12 +52,11 @@ export const getGames = asyncHandler(async (req, res) => {
               url: api.api_url,
               thumbnailUrl: api.api_image || "/default-thumbnail.jpg",
               description: "Direct HTML game",
-              categories: ["Mix"],
+              categories: api.game_category ? [api.game_category] : ["Mix"],
               metadata: {},
             },
           ];
         }
-
         // Step 2b: Fetch data from the external API (for APIs like GamePix)
         const response = await axios.get(api.api_url);
 
@@ -121,5 +126,27 @@ export const getGames = asyncHandler(async (req, res) => {
       games: [],
       totalGames: 0,
     });
+  }
+});
+
+export const changePosition = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { position } = req.body;
+
+  if (!position || position < 1) {
+    return res.status(400).json({ message: "Invalid position value" });
+  }
+
+  try {
+    const game = await apiModel.findById(id);
+    if (!game) {
+      return res.status(404).json({ message: "Game not found" });
+    }
+
+    game.position = position;
+    await game.save();
+    res.status(200).json({ message: "Position updated", game });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
   }
 });

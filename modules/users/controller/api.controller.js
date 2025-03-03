@@ -1,21 +1,34 @@
 import apiModel from "../../../DB/model/api.model.js";
+import categoryModel from "../../../DB/model/category.model.js";
 import axios from "axios";
 import { asyncHandler } from "../../../services/asyncHandler.js";
+import { Types } from "mongoose";
 
 export const addApi = asyncHandler(async (req, res) => {
-  const { api_name, api_url, api_image, game_category } = req.body;
+  const { api_name, api_url, api_image, categoryId } = req.body;
+
+  if (!Types.ObjectId.isValid(categoryId)) {
+    return res.status(400).json({ message: "Invalid categoryId" });
+  }
+
+  const categoryExists = await categoryModel.findById(categoryId);
+  if (!categoryExists) {
+    return res.status(404).json({ message: "Category not found" });
+  }
+  const count = await apiModel.countDocuments({ categoryId });
   const result = await apiModel.create({
     api_name,
     api_url,
     api_image,
-    game_category,
+    categoryId,
   });
+
   res.status(201).json({ message: "Created", result });
 });
 
-export const getApis = asyncHandler(async (req, res) => {
-  const allApis = await apiModel.find();
-  res.status(200).json({ message: "Done", allApis });
+export const getAllApis = asyncHandler(async (req, res) => {
+  const apis = await apiModel.find().populate("categoryId", "name"); // Populate the category name
+  res.status(200).json({ allApis: apis });
 });
 
 export const deleteApi = asyncHandler(async (req, res) => {
@@ -30,8 +43,8 @@ export const deleteApi = asyncHandler(async (req, res) => {
 
 export const getGames = asyncHandler(async (req, res) => {
   try {
-    // Step 1: Fetch all APIs from the database
-    const allApis = await apiModel.find();
+    // Step 1: Fetch all APIs from the database and populate the categoryId field
+    const allApis = await apiModel.find().populate("categoryId");
     if (!allApis.length) {
       return res.status(200).json({
         message: "No APIs found in the database",
@@ -52,11 +65,15 @@ export const getGames = asyncHandler(async (req, res) => {
               url: api.api_url,
               thumbnailUrl: api.api_image || "/default-thumbnail.jpg",
               description: "Direct HTML game",
-              categories: api.game_category ? [api.game_category] : ["Mix"],
+              // Use categoryId.name if it exists, otherwise default to "Mix"
+              categories: api.categoryId?.name
+                ? [api.categoryId.name]
+                : ["Mix"],
               metadata: {},
             },
           ];
         }
+
         // Step 2b: Fetch data from the external API (for APIs like GamePix)
         const response = await axios.get(api.api_url);
 
@@ -74,6 +91,7 @@ export const getGames = asyncHandler(async (req, res) => {
           url: game.url,
           thumbnailUrl: game.thumbnailUrl,
           description: game.description,
+          // Use the game's categories if they exist, otherwise default to "Uncategorized"
           categories: game.categories || ["Uncategorized"],
           metadata: {
             orientation: game.orientation,
@@ -97,7 +115,8 @@ export const getGames = asyncHandler(async (req, res) => {
             url: api.api_url,
             thumbnailUrl: api.api_image || "/default-thumbnail.jpg",
             description: "Fallback game entry",
-            categories: ["Mix"],
+            // Use categoryId.name if it exists, otherwise default to "Mix"
+            categories: api.categoryId?.name ? [api.categoryId.name] : ["Mix"],
             metadata: {},
           },
         ];
@@ -149,4 +168,16 @@ export const changePosition = asyncHandler(async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
+});
+
+export const reorderGames = asyncHandler(async (req, res) => {
+  const { categoryId, games } = req.body;
+  const bulkOps = games.map((game) => ({
+    updateOne: {
+      filter: { _id: game.id, categoryId },
+      update: { $set: { order: game.order } },
+    },
+  }));
+  await apiModel.bulkWrite(bulkOps);
+  res.status(200).json({ message: "Order updated successfully" });
 });

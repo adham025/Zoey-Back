@@ -19,6 +19,7 @@ app.use(cors());
 connection();
 //Setup API Routing
 app.use(`/api`, indexRouter.apiRouter);
+app.use(`/category`, indexRouter.categoryRouter);
 
 app.use("*", (req, res, next) => {
   res.send("In-valid Routing Plz check url or method");
@@ -27,9 +28,3 @@ app.use("*", (req, res, next) => {
 app.use(globalError);
 
 app.listen(port, () => console.log(`App listening on port ${port}!`));
-
-
-
-
-
-

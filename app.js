@@ -17,6 +17,11 @@ app.use(express.json());
 app.use(cors());
 
 connection();
+
+app.get("/", (req, res) => {
+  res.send("Backend is working!");
+});
+
 //Setup API Routing
 app.use(`/api`, indexRouter.apiRouter);
 app.use(`/category`, indexRouter.categoryRouter);

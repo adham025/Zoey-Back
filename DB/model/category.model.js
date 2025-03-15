@@ -1,13 +1,16 @@
 import { Schema, model, Types } from "mongoose";
 
-
 const categorySchema = new Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  order: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+});
 
-    name: {
-        type: String,
-    },
-})
-
-
-const categoryModel = model('Category', categorySchema)
-export default categoryModel
+const categoryModel = model("Category", categorySchema);
+export default categoryModel;

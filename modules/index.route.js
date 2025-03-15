@@ -1,7 +1,4 @@
-import apiRouter from './users/api.route.js'
-import categoryRouter from './category/category.router.js'
+import apiRouter from "./api/api.route.js";
+import categoryRouter from "./category/category.router.js";
 
-
-
-
-export { apiRouter, categoryRouter}
+export { apiRouter, categoryRouter };

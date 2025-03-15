@@ -9,6 +9,7 @@ const apiSchema = new Schema({
     ref: "Category",
     required: [true, "CategoryId is required"],
   },
+  order: { type: Number, default: 0 }  
 });
 
 const apiModel = model("api", apiSchema);

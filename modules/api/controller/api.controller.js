@@ -15,12 +15,17 @@ export const addApi = asyncHandler(async (req, res) => {
   if (!categoryExists) {
     return res.status(404).json({ message: "Category not found" });
   }
-  const count = await apiModel.countDocuments({ categoryId });
+
+  // Find the highest order in the category and increment it by 1
+  const lastApi = await apiModel.findOne({ categoryId }).sort({ order: -1 });
+  const newOrder = lastApi ? Number(lastApi.order) + 1 : 1;
+
   const result = await apiModel.create({
     api_name,
     api_url,
     api_image,
     categoryId,
+    order: newOrder,
   });
 
   res.status(201).json({ message: "Created", result });
@@ -52,7 +57,7 @@ export const updateApi = asyncHandler(async (req, res) => {
       return res.status(404).json({ message: "Category not found" });
     }
   }
-  
+
   api.api_name = api_name || api.api_name;
   api.api_url = api_url || api.api_url;
   api.api_image = api_image || api.api_image;
@@ -60,13 +65,19 @@ export const updateApi = asyncHandler(async (req, res) => {
 
   const updatedApi = await api.save();
 
-  res.status(200).json({ message: "API updated successfully", result: updatedApi });
+  res
+    .status(200)
+    .json({ message: "API updated successfully", result: updatedApi });
 });
 
-
 export const getAllApis = asyncHandler(async (req, res) => {
-  const apis = await apiModel.find().populate("categoryId", "name");
-  res.status(200).json({ allApis: apis });
+  try {
+    const apis = await apiModel.find().populate("categoryId", "name");
+    apis.sort((a, b) => Number(a.order) - Number(b.order));
+    res.status(200).json({ allApis: apis });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch apis." });
+  }
 });
 
 export const deleteApi = asyncHandler(async (req, res) => {
@@ -84,8 +95,12 @@ export const getGames = asyncHandler(async (req, res) => {
     // Fetch all categories sorted by 'order'
     const allCategories = await categoryModel.find().sort({ order: 1 });
 
-    // Fetch all APIs from the database and populate the categoryId field
-    const allApis = await apiModel.find().populate("categoryId");
+    // Fetch all APIs from the database, sorted by their 'order' field, and populate the categoryId field
+    const allApis = await apiModel
+      .find()
+      .sort({ order: 1 })
+      .populate("categoryId");
+
     if (!allApis.length) {
       return res.status(200).json({
         message: "No APIs found in the database",
@@ -115,6 +130,7 @@ export const getGames = asyncHandler(async (req, res) => {
               description: "Direct HTML game",
               categories: [api.categoryId?.name || "Mix"],
               metadata: {},
+              order: api.order,
             },
           ];
         }
@@ -140,6 +156,7 @@ export const getGames = asyncHandler(async (req, res) => {
                 featured: game.featured || false,
                 score: game.rkScore || 0,
               },
+              order: api.order,
             })
           );
         }
@@ -159,7 +176,12 @@ export const getGames = asyncHandler(async (req, res) => {
       }
     }
 
-    // Reorder the categories based on the 'order' field
+    // 🔄 Sort games within each category by their 'order' field
+    for (const category in categorizedGames) {
+      categorizedGames[category].sort((a, b) => a.order - b.order);
+    }
+
+    // 🔥 Create an ordered object to match category order from the database
     const orderedGames = {};
     allCategories.forEach((category) => {
       if (categorizedGames[category.name]) {
@@ -184,36 +206,17 @@ export const getGames = asyncHandler(async (req, res) => {
   }
 });
 
-export const changePosition = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { position } = req.body;
-
-  if (!position || position < 1) {
-    return res.status(400).json({ message: "Invalid position value" });
-  }
+export const reorderApis = async (req, res) => {
+  const { updatedApis } = req.body;
 
   try {
-    const game = await apiModel.findById(id);
-    if (!game) {
-      return res.status(404).json({ message: "Game not found" });
-    }
+    const updatePromises = updatedApis.map((api) =>
+      apiModel.findByIdAndUpdate(api._id, { order: api.order })
+    );
 
-    game.position = position;
-    await game.save();
-    res.status(200).json({ message: "Position updated", game });
+    await Promise.all(updatePromises);
+    res.status(200).json({ message: "APIs reordered successfully." });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+    res.status(500).json({ message: "Failed to reorder APIs." });
   }
-});
-
-export const reorderGames = asyncHandler(async (req, res) => {
-  const { categoryId, games } = req.body;
-  const bulkOps = games.map((game) => ({
-    updateOne: {
-      filter: { _id: game.id, categoryId },
-      update: { $set: { order: game.order } },
-    },
-  }));
-  await apiModel.bulkWrite(bulkOps);
-  res.status(200).json({ message: "Order updated successfully" });
-});
+};
